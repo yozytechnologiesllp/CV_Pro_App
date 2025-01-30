@@ -55,6 +55,7 @@ const JobDescriptionForm = () => {
 
     setResumeFile(file);
     setPreviewUrl(URL.createObjectURL(file)); // Generate preview URL
+    message.success("File uploaded successfully.");
     return false;
   };
 
@@ -88,6 +89,8 @@ const JobDescriptionForm = () => {
     setResumeFile(null);
     setPreviewUrl("");
     setDocText(""); // Clear extracted text
+    message.error("File has been removed");
+
   };
 
   // Analyze the CV and job description
@@ -294,6 +297,30 @@ const JobDescriptionForm = () => {
               Submit
             </Button>
           </Flex>
+          {loadingforskills && <Skeleton active style={{ marginTop: 16 }} />}
+          {extractSkill && (
+            <Card title="Extracted Skills" style={{ marginTop: 16 }}>
+              <div>
+                <strong>Hard Skills:</strong>{" "}
+              </div>
+              {extractSkill &&
+                extractSkill?.hard_skills?.map((Item, index) => (
+                  <Tag color="cyan" key={index}>
+                    {Item}
+                  </Tag>
+                ))}
+
+              <div style={{ marginTop: 9 }}>
+                <strong>Soft Kills:</strong>{" "}
+              </div>
+              {extractSkill &&
+                extractSkill?.soft_skills?.map((Item, index) => (
+                  <Tag color="orange" key={index}>
+                    {Item}
+                  </Tag>
+                ))}
+            </Card>
+          )}
           {loading && <Skeleton active style={{ marginTop: 16 }} />}
           {analysisResult && (
             <Card title="Analysis Result" style={{ marginTop: 16 }}>
@@ -341,29 +368,7 @@ const JobDescriptionForm = () => {
               </div>
             </Card>
           )}
-          {extractSkill && (
-            <Card title="Extracted Skills" style={{ marginTop: 16 }}>
-              <div>
-                <strong>Hard Skills:</strong>{" "}
-              </div>
-              {extractSkill &&
-                extractSkill?.hard_skills?.map((Item, index) => (
-                  <Tag color="cyan" key={index}>
-                    {Item}
-                  </Tag>
-                ))}
-
-              <div style={{ marginTop: 9 }}>
-                <strong>Soft Kills:</strong>{" "}
-              </div>
-              {extractSkill &&
-                extractSkill?.soft_skills?.map((Item, index) => (
-                  <Tag color="orange" key={index}>
-                    {Item}
-                  </Tag>
-                ))}
-            </Card>
-          )}
+          
         </Space>
       </Card>
       <Modal
