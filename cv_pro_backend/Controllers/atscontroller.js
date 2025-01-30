@@ -3,7 +3,9 @@ const fs = require("fs");
 const pdfParse = require("pdf-parse");
 const { OpenAI } = require("openai");
 const { createClient } = require("@supabase/supabase-js");
-// const { saveAnalysisToSupabase } = require("./supabasecontroller");
+const { supabaseAnalyze } = require("./supabaseAnalyze");
+const mammoth = require("mammoth");
+const path = require("path");
 
 // Initialize OpenAI API
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -23,11 +25,34 @@ const extractTextFromPDF = async (filePath) => {
     }
 };
 
+// Extract text from a Word (DOCX) file
+const extractTextFromWord = async (filePath) => {
+    try {
+        const data = await mammoth.extractRawText({ path: filePath });
+        return data.value;
+    } catch (error) {
+        console.error("DOCX Parsing Error:", error);
+        return "";
+    }
+};
+
+// Function to process file based on type
+const processFile = async (filePath, fileType) => {
+    if (fileType === "pdf") {
+        return await extractTextFromPDF(filePath);
+    } else if (fileType === "docx") {
+        return await extractTextFromWord(filePath);
+    } else {
+        throw new Error("Unsupported file format. Only PDF and DOCX are allowed.");
+    }
+};
+
 // Function to analyze resume using OpenAI
 const analyzeResumeWithOpenAI = async (jd, resumeText) => {
     const prompt = `
-    You are an ATS (Applicant Tracking System) AI. Analyze the following resume against the provided job description.
-    Provide a match percentage, list of missing keywords, and a short profile summary.
+    You are an advanced ATS (Applicant Tracking System) AI. Analyze the following resume against the provided job description.
+    Provide a match percentage, list of missing keywords, list of matching keywords, a short profile summary, 
+    and detailed suggestions for improving the resume.
 
     **Resume:**
     ${resumeText}
@@ -38,8 +63,14 @@ const analyzeResumeWithOpenAI = async (jd, resumeText) => {
     Format the response strictly in JSON:
     {
       "JD Match": "80%",
+      "MissingKeywords": ["Docker", "Kubernetes"],
       "MatchingKeywords": ["React.js", "Node.js", "JavaScript"],
-      "ProfileSummary": "This candidate is proficient in React and Node.js but lacks experience in cloud computing."
+      "ProfileSummary": "This candidate is proficient in React and Node.js but lacks experience in cloud computing.",
+      "Suggestions": [
+        "Include a section on DevOps experience, specifically Docker and Kubernetes.",
+        "Highlight projects that demonstrate cloud computing skills.",
+        "Add certifications related to cloud technologies, such as AWS or Azure."
+      ]
     }
   `;
 
@@ -47,8 +78,8 @@ const analyzeResumeWithOpenAI = async (jd, resumeText) => {
         const response = await openai.chat.completions.create({
             model: "gpt-3.5-turbo", // Change to "gpt-4" if needed
             messages: [{ role: "user", content: prompt }],
-            max_tokens: 500,
-            temperature: 0.7,
+            max_tokens: 600,
+            temperature: 1,
         });
 
         return JSON.parse(response.choices[0].message.content);
@@ -57,6 +88,7 @@ const analyzeResumeWithOpenAI = async (jd, resumeText) => {
         return { error: "Failed to analyze resume." };
     }
 };
+
 
 // Process JD and Resume
 exports.processResume = async (req, res) => {
@@ -68,19 +100,21 @@ exports.processResume = async (req, res) => {
     }
 
     try {
-        const resumeText = await extractTextFromPDF(resumeFile.path);
+        const fileExtension = path.extname(resumeFile.originalname).toLowerCase().replace(".", "");
+
+        const resumeText = await processFile(resumeFile.path, fileExtension);
         const analysisResult = await analyzeResumeWithOpenAI(jd, resumeText);
 
         // Delete uploaded file after processing
         fs.unlinkSync(resumeFile.path);
 
         // Save results to Supabase
-        const saveResponse = await saveAnalysisToSupabase(analysisResult);
+        await supabaseAnalyze(analysisResult);
 
         res.json(analysisResult);
     } catch (error) {
         console.error("Processing Error:", error);
-        res.status(500).json({ error: "Internal server error" });
+        res.status(500).json({ error: error.message || "Internal server error" });
     }
 };
 

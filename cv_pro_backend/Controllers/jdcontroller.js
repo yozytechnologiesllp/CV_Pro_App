@@ -1,5 +1,6 @@
 require("dotenv").config();
 const { OpenAI } = require("openai");
+const { supabaseSkillExtract } = require("./supabaseSkillExtract");
 
 // Initialize OpenAI API
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -22,21 +23,16 @@ const extractSkillsWithOpenAI = async (jdText) => {
 
     try {
         // Call OpenAI API
+
         const response = await openai.chat.completions.create({
-            model: "gpt-3.5-turbo", // Use the same working model
-            messages: [
-                { role: "system", content: "You are an AI that extracts skills from job descriptions." },
-                { role: "user", content: prompt },
-            ],
+            model: "gpt-3.5-turbo", // Change to "gpt-4" if needed
+            messages: [{ role: "user", content: prompt }],
+            max_tokens: 500,
             temperature: 1,
-            max_tokens: 512,
         });
 
         // Extract response text
         const jsonResponse = response.choices[0].message.content.trim();
-
-        // Log OpenAI response for debugging
-        console.log("OpenAI Response:", jsonResponse);
 
         // Ensure it's a valid JSON format
         return JSON.parse(jsonResponse);
@@ -49,13 +45,14 @@ const extractSkillsWithOpenAI = async (jdText) => {
 // Process JD and Extract Skills
 exports.processJD = async (req, res) => {
     const jdText = req.body.jobDescription;
-
     if (!jdText) {
         return res.status(400).json({ error: "No Job Description provided." });
     }
 
     try {
         const skillsData = await extractSkillsWithOpenAI(jdText);
+        // Save results to Supabase
+        await supabaseSkillExtract(jdText, skillsData?.hard_skills, skillsData?.soft_skills);
         res.json(skillsData);
     } catch (error) {
         console.error("Error processing JD:", error);

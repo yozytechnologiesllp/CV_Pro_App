@@ -1,6 +1,6 @@
 const express = require("express");
 const multer = require("multer");
-const { processResume, getPreviousResults } = require("../Controllers/atscontroller");
+const { processResume, getPreviousResults } = require("../controllers/atscontroller");
 
 const router = express.Router();
 
