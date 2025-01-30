@@ -51,6 +51,9 @@ exports.processJD = async (req, res) => {
 
     try {
         const skillsData = await extractSkillsWithOpenAI(jdText);
+        if (skillsData?.error) {
+            return res.status(400).json({ error: skillsData?.error })
+        }
         // Save results to Supabase
         await supabaseSkillExtract(jdText, skillsData?.hard_skills, skillsData?.soft_skills);
         res.json(skillsData);

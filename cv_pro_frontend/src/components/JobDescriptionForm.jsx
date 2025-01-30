@@ -90,7 +90,6 @@ const JobDescriptionForm = () => {
     setPreviewUrl("");
     setDocText(""); // Clear extracted text
     message.error("File has been removed");
-
   };
 
   // Analyze the CV and job description
@@ -140,9 +139,12 @@ const JobDescriptionForm = () => {
         postdata
       );
       setExtractSkill(data);
+      message.success("Skills extracted successfully");
     } catch (error) {
       console.log(error);
-      message.error("Failed to analyze CV. Please try again.");
+      message.error(
+        error?.error || "OpenAI failed to extract skills. Check logs."
+      );
     } finally {
       setLoadingforskills(false);
     }
@@ -368,7 +370,6 @@ const JobDescriptionForm = () => {
               </div>
             </Card>
           )}
-          
         </Space>
       </Card>
       <Modal
