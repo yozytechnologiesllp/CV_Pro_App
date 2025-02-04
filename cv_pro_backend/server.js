@@ -9,17 +9,14 @@ const app = express();
 // Middleware
 app.use(express.json());
 app.use(cors({
-    origin: "*", // Allow all origins (modify for security)
+    origin: "*",
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"]
 }));
 
-// Use the OpenAI route
+// API Routes
 app.use("/api", jdRoutes);
 app.use("/api", atsRoutes);
 
-// Start the server
-const PORT = 3001;
-app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-});
+// Export the Express app for Vercel
+module.exports = app;
